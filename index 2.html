@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#071321">
+<title>NTSM LIVE | ศูนย์ติดตามแผ่นดินไหว</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --bg:#071321;--panel:#101f31;--panel2:#15283e;
+  --line:#294157;--text:#f1f7ff;--muted:#9bb1c7;
+  --cyan:#42d7f4;--green:#42d9aa;--yellow:#ffca66;
+  --red:#ff617b
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",
+  Tahoma,Arial,sans-serif;font-size:14px
+}
+header{
+  background:#0b1b2b;border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:1000
+}
+.top{
+  max-width:1450px;margin:auto;padding:14px 20px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px
+}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{
+  width:44px;height:44px;border-radius:12px;
+  background:linear-gradient(135deg,#0b4b65,#1689a5);
+  display:grid;place-items:center;font-size:24px
+}
+.brand h1{font-size:21px;margin:0;letter-spacing:1px}
+.brand small{font-size:11px;color:var(--muted)}
+.cyan{color:var(--cyan)}.green{color:var(--green)}
+.yellow{color:var(--yellow)}
+.status{font-size:11px;color:var(--yellow);text-align:right}
+main{max-width:1450px;margin:auto;padding:23px 20px}
+.intro{margin-bottom:20px}
+.eyebrow{
+  color:var(--cyan);font-size:11px;letter-spacing:1px;
+  font-weight:bold
+}
+.intro h2{font-size:25px;margin:7px 0}
+.intro p{margin:0;color:var(--muted)}
+.metrics{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:13px;margin-bottom:19px
+}
+.metric{
+  background:linear-gradient(140deg,var(--panel2),var(--panel));
+  border:1px solid var(--line);border-radius:14px;
+  padding:18px;min-height:112px
+}
+.metric .label{font-size:12px;color:var(--muted)}
+.metric .value{font-size:31px;font-weight:800;margin:10px 0 4px}
+.metric .sub{font-size:11px;color:var(--muted)}
+.layout{
+  display:grid;grid-template-columns:minmax(0,1.75fr) minmax(280px,.8fr);
+  gap:16px
+}
+.panel{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;overflow:hidden;min-width:0
+}
+.panel-head{
+  padding:16px 18px;border-bottom:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center;
+  gap:12px;flex-wrap:wrap
+}
+.panel-head h3{font-size:15px;margin:0}
+.muted{color:var(--muted);font-size:11px}
+#map{height:465px;background:#173047;z-index:1}
+.legend{
+  display:flex;gap:14px;flex-wrap:wrap;padding:13px 17px;
+  color:var(--muted);font-size:11px
+}
+.swatch{
+  display:inline-block;width:10px;height:10px;
+  border-radius:50%;margin-right:5px
+}
+.feed{max-height:520px;overflow:auto}
+.event{
+  padding:15px;border-bottom:1px solid var(--line);
+  cursor:pointer
+}
+.event:hover{background:#1b334b}
+.event-top{display:flex;justify-content:space-between;gap:9px}
+.event-name{font-size:12px;font-weight:650;line-height:1.6}
+.event-meta{font-size:11px;color:var(--muted);margin-top:7px}
+.mag{
+  padding:8px;min-width:54px;border-radius:9px;
+  text-align:center;font-weight:800;font-size:17px;
+  background:#24384c;height:max-content
+}
+.section{margin-top:19px}
+.tools{display:flex;gap:9px;flex-wrap:wrap}
+input,select{
+  background:#0a1a2a;color:var(--text);
+  border:1px solid var(--line);border-radius:8px;
+  padding:10px;font:inherit
+}
+input{width:240px;max-width:100%}
+.table-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;white-space:nowrap}
+th{
+  background:#162b41;color:#a7bfd2;
+  text-align:left;font-size:11px
+}
+th,td{padding:13px 16px;border-bottom:1px solid #253a50}
+td{font-size:12px}
+tbody tr:hover{background:#1a3249}
+.place-cell{min-width:220px;white-space:normal}
+footer{padding:23px 0;color:var(--muted);font-size:11px;line-height:1.9}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{
+  background:#13273b;color:#fff
+}
+.leaflet-popup-content{line-height:1.7}
+@media(max-width:1000px){
+  .layout{grid-template-columns:1fr}
+  .feed{max-height:310px}
+}
+@media(max-width:650px){
+  main{padding:15px 10px}
+  .top{padding:11px}
+  .brand h1{font-size:17px}
+  .brand small{font-size:9px}
+  .metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .metric{padding:13px;min-height:103px}
+  .metric .value{font-size:27px}
+  #map{height:370px}
+  .intro h2{font-size:21px}
+  .panel-head{padding:13px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <div class="brand">
+      <div class="logo">◉</div>
+      <div>
+        <h1>NTSM <span class="cyan">LIVE</span></h1>
+        <small>ศูนย์ติดตามและเฝ้าระวังแผ่นดินไหว</small>
+      </div>
+    </div>
+    <div class="status" id="status">● กำลังอ่านข้อมูล</div>
+  </div>
+</header>
+
+<main>
+<section class="intro">
+  <div class="eyebrow">ระบบติดตามแผ่นดินไหว · เวอร์ชัน 1.0</div>
+  <h2>ภาพรวมสถานการณ์แผ่นดินไหว</h2>
+  <p>รวบรวมข้อมูลเหตุการณ์จาก TMD, USGS และ GEOFON</p>
+</section>
+
+<section class="metrics">
+  <div class="metric">
+    <div class="label">จำนวนเหตุการณ์ทั้งหมด</div>
+    <div class="value cyan" id="total">—</div>
+    <div class="sub">เหตุการณ์ในฐานข้อมูลล่าสุด</div>
+  </div>
+  <div class="metric">
+    <div class="label">ขนาดแผ่นดินไหวสูงสุด</div>
+    <div class="value yellow" id="maxmag">—</div>
+    <div class="sub">Magnitude (M)</div>
+  </div>
+  <div class="metric">
+    <div class="label">เหตุการณ์ในประเทศไทย</div>
+    <div class="value green" id="thai">—</div>
+    <div class="sub">คำนวณจากกรอบพิกัดโดยประมาณ</div>
+  </div>
+  <div class="metric">
+    <div class="label">แหล่งข้อมูล</div>
+    <div class="value" id="providers">—</div>
+    <div class="sub">TMD · USGS · GEOFON</div>
+  </div>
+</section>
+
+<section class="layout">
+  <div class="panel">
+    <div class="panel-head">
+      <h3>◉ แผนที่เหตุการณ์แผ่นดินไหว</h3>
+      <span class="muted">แตะจุดบนแผนที่เพื่อดูรายละเอียด</span>
+    </div>
+    <div id="map"></div>
+    <div class="legend">
+      <span><i class="swatch" style="background:#42d9aa"></i>ต่ำกว่า M3.0</span>
+      <span><i class="swatch" style="background:#ffca66"></i>M3.0–4.9</span>
+      <span><i class="swatch" style="background:#ff617b"></i>M5.0 ขึ้นไป</span>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-head">
+      <h3>เหตุการณ์ล่าสุด</h3>
+      <span class="muted" id="feedcount"></span>
+    </div>
+    <div class="feed" id="feed"></div>
+  </div>
+</section>
+
+<section class="panel section">
+  <div class="panel-head">
+    <h3>ฐานข้อมูลเหตุการณ์แผ่นดินไหว</h3>
+    <div class="tools">
+      <input id="search" type="search" placeholder="ค้นหาสถานที่หรือแหล่งข้อมูล">
+      <select id="minmag">
+        <option value="0">ทุกขนาด</option>
+        <option value="2">ตั้งแต่ M2.0</option>
+        <option value="3">ตั้งแต่ M3.0</option>
+        <option value="4">ตั้งแต่ M4.0</option>
+        <option value="5">ตั้งแต่ M5.0</option>
+      </select>
+    </div>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr>
+        <th>วันและเวลา (ไทย)</th>
+        <th>ขนาด (M)</th>
+        <th>สถานที่เกิดเหตุ</th>
+        <th>ความลึก (Depth)</th>
+        <th>แหล่งข้อมูล</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <div id="updated"></div>
+  NTSM LIVE v1.0 · โครงการต้นแบบระบบติดตามแผ่นดินไหว<br>
+  เว็บไซต์นี้แสดงข้อมูลที่บันทึกไว้ล่าสุด ไม่ใช่ข้อมูลสดหรือระบบแจ้งเตือนอย่างเป็นทางการ
+</footer>
+</main>
+
+<script id="ntsm-data" type="application/json">{"events":[{"id":"NTSM-0001","time":"2026-11-01 06:52:20+00:00","lat":19.135,"lon":100.316,"mag":1.6,"depth":null,"place":"แผ่นดินไหว ต.ควร อ.ปง จ.พะเยา","sources":"TMD"},{"id":"NTSM-0002","time":"2026-11-01 06:02:56+00:00","lat":19.105,"lon":100.314,"mag":1.7,"depth":null,"place":"แผ่นดินไหว ต.ควร อ.ปง จ.พะเยา","sources":"TMD"},{"id":"NTSM-0003","time":"2026-11-01 05:55:17+00:00","lat":19.129,"lon":100.327,"mag":2.0,"depth":null,"place":"แผ่นดินไหว ต.ควร อ.ปง จ.พะเยา","sources":"TMD"},{"id":"NTSM-0004","time":"2026-11-01 05:39:02+00:00","lat":4.887,"lon":96.432,"mag":4.0,"depth":null,"place":"แผ่นดินไหว ตอนเหนือของหมู่เกาะสุมาตรา ประเทศอินโดนีเซีย","sources":"TMD"},{"id":"NTSM-0005","time":"2026-11-01 05:09:21+00:00","lat":19.115,"lon":100.3,"mag":2.1,"depth":null,"place":"แผ่นดินไหว ต.ปง อ.ปง จ.พะเยา","sources":"TMD"},{"id":"NTSM-0006","time":"2026-11-01 05:01:05+00:00","lat":19.122,"lon":100.311,"mag":3.9,"depth":null,"place":"แผ่นดินไหว ต.ควร อ.ปง จ.พะเยา","sources":"TMD"},{"id":"NTSM-0007","time":"2026-10-31 19:44:05+00:00","lat":4.077,"lon":97.446,"mag":3.5,"depth":null,"place":"แผ่นดินไหว ตอนเหนือของหมู่เกาะสุมาตรา ประเทศอินโดนีเซีย","sources":"TMD"},{"id":"NTSM-0008","time":"2026-10-31 16:42:48+00:00","lat":20.969,"lon":100.439,"mag":1.8,"depth":null,"place":"แผ่นดินไหว ประเทศเมียนมา","sources":"TMD"},{"id":"NTSM-0009","time":"2026-10-31 07:53:34+00:00","lat":14.731,"lon":107.816,"mag":3.9,"depth":null,"place":"แผ่นดินไหว ประเทศเวียดนาม","sources":"TMD"},{"id":"NTSM-0010","time":"2026-10-30 18:01:20+00:00","lat":19.827,"lon":95.936,"mag":3.0,"depth":null,"place":"แผ่นดินไหว ประเทศเมียนมา","sources":"TMD"},{"id":"NTSM-0011","time":"2026-10-29 08:49:42.448000+00:00","lat":13.3785,"lon":91.6593,"mag":5.1,"depth":10.0,"place":"218 km NNW of Bamboo Flat, India","sources":"GEOFON + USGS"}],"snapshot":"2026-11-01T10:21:43+00:00"}</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const data=JSON.parse(document.getElementById("ntsm-data").textContent);
+const events=data.events;
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+}[c]));
+const color=m=>m>=5?"#ff617b":m>=3?"#ffca66":"#42d9aa";
+const inThailand=e=>e.lat>=5.5&&e.lat<=20.5&&e.lon>=97&&e.lon<=106;
+function thaiTime(s){
+  const d=new Date(s);
+  if(isNaN(d))return "ไม่ระบุเวลา";
+  return d.toLocaleString("th-TH",{
+    timeZone:"Asia/Bangkok",
+    year:"numeric",month:"short",day:"numeric",
+    hour:"2-digit",minute:"2-digit",hour12:false
+  });
+}
+const max=events.length?Math.max(...events.map(e=>e.mag)):0;
+document.getElementById("total").textContent=events.length;
+document.getElementById("maxmag").textContent=events.length?"M"+max.toFixed(1):"—";
+document.getElementById("thai").textContent=events.filter(inThailand).length;
+const providers=new Set();
+events.forEach(e=>e.sources.split("+").forEach(s=>providers.add(s.trim())));
+document.getElementById("providers").textContent=providers.size;
+document.getElementById("status").textContent=
+  "● ข้อมูลบันทึก · "+thaiTime(data.snapshot);
+document.getElementById("updated").textContent=
+  "อัปเดตข้อมูลบันทึกล่าสุด: "+thaiTime(data.snapshot)+" น. (เวลาไทย)";
+
+const feed=document.getElementById("feed");
+document.getElementById("feedcount").textContent=events.length+" เหตุการณ์";
+feed.innerHTML=events.slice(0,30).map((e,i)=>`
+  <div class="event" data-index="${i}">
+    <div class="event-top">
+      <div>
+        <div class="event-name">${esc(e.place)}</div>
+        <div class="event-meta">${thaiTime(e.time)} · ${esc(e.sources)}</div>
+      </div>
+      <div class="mag" style="color:${color(e.mag)}">M${e.mag.toFixed(1)}</div>
+    </div>
+  </div>`).join("");
+
+function renderTable(){
+  const q=document.getElementById("search").value.toLowerCase();
+  const min=Number(document.getElementById("minmag").value);
+  const filtered=events.filter(e=>e.mag>=min&&(
+    e.place.toLowerCase().includes(q)||
+    e.sources.toLowerCase().includes(q)
+  ));
+  document.getElementById("rows").innerHTML=filtered.map(e=>`
+    <tr>
+      <td>${thaiTime(e.time)}</td>
+      <td style="color:${color(e.mag)};font-weight:800">M${e.mag.toFixed(1)}</td>
+      <td class="place-cell">${esc(e.place)}</td>
+      <td>${e.depth==null?"ไม่ระบุ":e.depth+" กม."}</td>
+      <td>${esc(e.sources)}</td>
+    </tr>`).join("")||
+    '<tr><td colspan="5">ไม่พบเหตุการณ์ที่ตรงกับการค้นหา</td></tr>';
+}
+document.getElementById("search").addEventListener("input",renderTable);
+document.getElementById("minmag").addEventListener("change",renderTable);
+renderTable();
+
+if(typeof L!=="undefined"){
+  const map=L.map("map",{scrollWheelZoom:false}).setView([17,101],5);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    attribution:"&copy; OpenStreetMap contributors",
+    maxZoom:18
+  }).addTo(map);
+  const markers=[];
+  events.forEach(e=>{
+    const marker=L.circleMarker([e.lat,e.lon],{
+      radius:Math.max(6,Math.min(18,e.mag*2.5)),
+      color:color(e.mag),fillColor:color(e.mag),
+      fillOpacity:.8,weight:2
+    }).addTo(map);
+    marker.bindPopup(
+      `<b>${esc(e.place)}</b><br>`+
+      `ขนาด: M${e.mag.toFixed(1)}<br>`+
+      `เวลา: ${thaiTime(e.time)}<br>`+
+      `แหล่งข้อมูล: ${esc(e.sources)}`
+    );
+    markers.push(marker);
+  });
+  if(markers.length){
+    map.fitBounds(L.featureGroup(markers).getBounds().pad(.15),{
+      maxZoom:7
+    });
+  }
+  feed.querySelectorAll(".event").forEach(el=>{
+    el.addEventListener("click",()=>{
+      const i=Number(el.dataset.index);
+      const e=events[i];
+      map.setView([e.lat,e.lon],9);
+      markers[i].openPopup();
+      document.getElementById("map").scrollIntoView({
+        behavior:"smooth",block:"center"
+      });
+    });
+  });
+}
+</script>
+</body>
+</html>
